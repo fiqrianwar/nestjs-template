@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from './entities/user.entity';
@@ -12,23 +12,36 @@ export class UserService {
     private readonly userRepository: Repository<UserEntity>,
   ) {}
 
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  async create(createUserDto: CreateUserDto) {
+    const userData = await this.userRepository.create(createUserDto);
+
+    return this.userRepository.save(userData);
   }
 
   async findAll() {
     return await this.userRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: number) {
+    const userData = await this.userRepository.findOneBy({ id });
+
+    if (!userData) {
+      throw new HttpException('User Not Found', 404);
+    }
+
+    return userData;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: number, updateUserDto: UpdateUserDto) {
+    const findUser = await this.findOne(id);
+    const userDataUpdate = this.userRepository.merge(findUser, updateUserDto);
+
+    return await this.userRepository.save(userDataUpdate);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: number) {
+    const deleteUser = await this.findOne(id);
+
+    return await this.userRepository.remove(deleteUser);
   }
 }
